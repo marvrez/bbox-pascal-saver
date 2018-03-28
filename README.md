@@ -1,4 +1,4 @@
-# bbox-pascal-saver
+# ssd-pascal-saver
 Script that saves the outputs from the SSD-network in PASCAL-VOC format which can later be used for retraining the network.
 
 ## Dependencies
