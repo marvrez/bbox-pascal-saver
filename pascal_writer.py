@@ -1,4 +1,5 @@
 import sys
+import os
 from xml.etree import ElementTree
 from xml.etree.ElementTree import Element, SubElement
 from lxml import etree
@@ -85,7 +86,9 @@ class PascalWriter:
     def save(self, out_filename=None):
         root = self.create_xml()
         self.store_bboxes(root)
-        out_filename = self.filename + XML_EXT if out_filename is None else out_filename
+        if out_filename is None:
+            filename = os.path.splitext(os.path.basename(self.filename))[0]
+            out_filename = self.foldername + "/" + filename + XML_EXT 
         out_file = codecs.open(out_filename, 'w', encoding=ENCODE_METHOD)
 
         result = self.prettify(root)
