@@ -1,35 +1,48 @@
+import os
+from os import listdir
+from os.path import isfile, join
 from detector import Detector
 from pascal_writer import PascalWriter
 from PIL import Image, ImageDraw
 
+visualize_detections = True
+
+def draw_detection(xmin, ymin, xmax, ymax, name, conf):
+    draw.rectangle([xmin, ymin, xmax, ymax], outline=(255, 0, 0))
+    draw.text([xmin, ymin], name + ": " + str(conf), (0, 0, 255))
+
+# Configurations for neural network
 gpu_id = 0
-model_def = ""
-model_weight = ""
 image_resize = 300
-labelmap_file = ""
-image_file = ""
-image_dir = ""
+data_folder   = "data/"
+model_def     = data_folder + "deploy.prototxt"
+model_weights = data_folder + "VGG_Ascend_SSD_Color_300x300_iter_24000.caffemodel"
+labelmap_file = data_folder + "labelmap.prototxt"
 
-def main():
-    detector = Detector(gpu_id,
-                        model_def, model_weights,
-                        image_resize, labelmap_file)
-    result = detector.detect(image_file)
-    print(result)
+# Configurations for input images
+image_dir = "output/images/"
+xml_dir = "output/xml/"
+image_files = [f for f in listdir(image_dir) if isfile(join(image_dir, f))]
 
-    img = Image.open(image_file)
-    draw = ImageDraw.Draw(img)
-    width, height = img.size
+detector = Detector(gpu_id, model_def, model_weights, image_resize, labelmap_file)
 
-    writer = PascalWriter(image_dir, image_file, img.size)
+for image_file in image_files:
+    filename = os.path.splitext(os.path.basename(image_file))[0]
+    result = detector.detect(image_dir + image_file)
+    print image_file,":", result
+
+    img = Image.open(image_dir + image_file)
+    if visualize_detections:
+        draw = ImageDraw.Draw(img)
+
+    writer = PascalWriter(image_dir, os.path.basename(image_file), img.size)
     for item in result:
         xmin, ymin, xmax, ymax = item[0], item[1], item[2], item[3]
-        name = item[-1]
-        draw.rectangle([xmin, ymin, xmax, ymax], outline=(255, 0, 0))
-        draw.text([xmin, ymin], item[-1] + str(item[-2]), (0, 0, 255))
+        name, conf = item[-1], item[-2]
+        if visualize_detections:
+            draw_detection(xmin, ymin, xmax, ymax, name, conf)
         writer.add_bbox(xmin, ymin, xmax , ymax, name)
-    writer.save()
-    img.save('detect_result.jpg')
+    writer.save(xml_dir + filename + ".xml")
 
-if __name__ == "__main__":
-    main()
+    if visualize_detections:
+        img.save("output/" + filename + "_t.jpg")
